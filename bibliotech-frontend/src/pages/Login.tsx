@@ -7,14 +7,15 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 // import { SocialButtonProps, AuthButtonProps } from "./types";
 import TypingText from '../components/components/TypingText';
+import { authService } from '../services/authService';
 
 type LoginFormData = {
-  username: string;
+  identifier: string;
   password: string;
 };
 
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  identifier: z.string().min(3, "Username/Email must be at least 3 characters"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
@@ -22,6 +23,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [error, setError] = useState<string>("");
 
   const {
     register,
@@ -43,11 +45,32 @@ const Login = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
+      setError("");
+      
+      // Validate data
       loginSchema.parse(data);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("Logging in", data);
+      
+      // Call login API
+      const response = await authService.login({
+        identifier: data.identifier,
+        password: data.password
+      });
+
+      // Store the user data
+      localStorage.setItem('user', JSON.stringify({
+        token: response.token,
+        username: response.username,
+        email: response.email
+      }));
+      
+      // Navigate to dashboard or home page
+      navigate('/dashboard');
     } catch (error) {
-      console.error(error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -129,9 +152,9 @@ const Login = () => {
                   <div className="space-y-4">
                     <div>
                       <input
-                        {...register("username")}
+                        {...register("identifier")}
                         type="text"
-                        placeholder="Username"
+                        placeholder="Username or Email"
                         className={`w-full px-4 py-3 rounded-xl transition-all duration-300
                           ${
                             isDarkMode
@@ -139,17 +162,17 @@ const Login = () => {
                               : "bg-gray-50 border-gray-200 text-gray-700 placeholder-gray-400"
                           }
                           ${
-                            errors.username ? "border-red-500 ring-red-500" : ""
+                            errors.identifier  ? "border-red-500 ring-red-500" : ""
                           }
                           focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                       />
-                      {errors.username && (
+                      {errors.identifier  && (
                         <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           className="mt-1 text-sm text-red-500"
                         >
-                          {errors.username.message?.toString()}
+                          {errors.identifier .message?.toString()}
                         </motion.p>
                       )}
                     </div>

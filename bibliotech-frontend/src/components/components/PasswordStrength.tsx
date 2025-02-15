@@ -12,7 +12,6 @@ interface PasswordStrengthProps {
 }
 
 const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password }) => {
-  // Xóa state password vì đã có từ props
   
   const strengthIndicators: StrengthIndicator[] = useMemo(() => [
     { level: 'Rất yếu', color: '#FF3B30', boxes: 1 },
@@ -40,8 +39,6 @@ const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password }) => {
 
   const strength = useMemo(() => calculateStrength(password), [password, calculateStrength]);
   const currentIndicator = strengthIndicators[strength];
-
-  // Xóa handleChange vì không cần nữa
 
   return (
     <div className="w-full space-y-4">           
