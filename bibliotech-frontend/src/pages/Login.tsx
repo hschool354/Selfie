@@ -5,6 +5,7 @@ import { AuthButton } from "../components/components/AuthButton";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useTheme } from "../Hooks/useTheme";
 // import { SocialButtonProps, AuthButtonProps } from "./types";
 import TypingText from '../components/components/TypingText';
 import { authService } from '../services/authService';
@@ -22,7 +23,7 @@ const loginSchema = z.object({
 const Login = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [error, setError] = useState<string>("");
 
   const {
@@ -47,24 +48,19 @@ const Login = () => {
       setIsLoading(true);
       setError("");
       
-      // Validate data
       loginSchema.parse(data);
       
-      // Call login API
       const response = await authService.login({
         identifier: data.identifier,
         password: data.password
       });
-
-      // Store the user data
-      localStorage.setItem('user', JSON.stringify({
-        token: response.token,
-        username: response.username,
-        email: response.email
-      }));
       
-      // Navigate to dashboard or home page
-      navigate('/dashboard');
+      // Chỉ cần check và navigate
+      if (response.isFirstLogin) {
+        navigate('/first-login');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -91,7 +87,7 @@ const Login = () => {
     >
       <div className="absolute top-4 right-4">
         <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
+          onClick={toggleTheme}
           className="p-2 rounded-full hover:bg-opacity-10 hover:bg-white transition-colors"
         >
           {isDarkMode ? "🌞" : "🌙"}

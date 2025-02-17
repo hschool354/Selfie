@@ -5,12 +5,12 @@ import { AuthButton } from "../components/components/AuthButton";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useTheme } from "../Hooks/useTheme";
 // import { SocialButtonProps, AuthButtonProps } from "./types";
 import PasswordStrength from "../components/components/PasswordStrength";
+import { authService } from "../services/authService";
 
 type SignUpFormData = {
-  firstName: string;
-  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -22,11 +22,7 @@ const signUpSchema = z
     username: z.string().min(3, "Username must be at least 3 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z
-      .string()
-      .min(8, "Password must be at least 8 characters"),
-    firstName: z.string().min(1, "First name is required"),
-    lastName: z.string().min(1, "Last name is required"),
+    confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords must match",
@@ -36,13 +32,15 @@ const signUpSchema = z
 const SignUp = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useTheme();
   const [passwordValue, setPasswordValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setError: setFieldError,
   } = useForm<SignUpFormData>();
 
   const handleLoginClick = () => {
@@ -58,11 +56,52 @@ const SignUp = () => {
   const onSubmit = async (data: SignUpFormData) => {
     try {
       setIsLoading(true);
-      await signUpSchema.parseAsync(data);
-      console.log("Signing up", data);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setError(null);
+      
+      console.log("Form data submitted:", data); // Debug log
+      
+      // Validate the data using Zod schema
+      const validatedData = await signUpSchema.parseAsync(data);
+      console.log("Data validated:", validatedData); // Debug log
+
+      // Prepare the signup request
+      const signUpRequest = {
+        username: validatedData.username,
+        email: validatedData.email,
+        password: validatedData.password
+      };
+
+      console.log("Calling auth service with:", signUpRequest); // Debug log
+
+      // Call the auth service
+      const response = await authService.signup(signUpRequest);
+      console.log("Signup response:", response); // Debug log
+
+      // Store the token in localStorage
+      localStorage.setItem('user', JSON.stringify(response));
+      
+      // Navigate to the login page
+      navigate('/login');
+      
     } catch (error) {
-      console.error(error);
+      console.error("Signup error:", error); // Debug log
+
+      if (error instanceof z.ZodError) {
+        // Handle validation errors
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            setFieldError(err.path[0] as keyof SignUpFormData, {
+              type: "manual",
+              message: err.message,
+            });
+          }
+        });
+      } else if (error instanceof Error) {
+        // Handle API errors
+        setError(error.message || "Signup failed. Please try again.");
+      } else {
+        setError("An unexpected error occurred during signup");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +118,7 @@ const SignUp = () => {
     >
       <div className="absolute top-4 right-4">
         <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
+          onClick={toggleTheme}
           className="p-2 rounded-full hover:bg-opacity-10 hover:bg-white transition-colors"
         >
           {isDarkMode ? "🌞" : "🌙"}
@@ -210,6 +249,15 @@ const SignUp = () => {
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
                 >
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 rounded-lg bg-red-100 text-red-700 mb-4"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
                   <div className="space-y-4">
                     <div>
                       <input
