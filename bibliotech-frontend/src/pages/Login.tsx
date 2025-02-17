@@ -55,11 +55,16 @@ const Login = () => {
         password: data.password
       });
       
-      // Chỉ cần check và navigate
-      if (response.isFirstLogin) {
-        navigate('/first-login');
+      // Check if user is admin
+      if (response.isAdmin) {
+        navigate('/dashboard'); // Admins go straight to dashboard
       } else {
-        navigate('/dashboard');
+        // Regular users
+        if (response.isFirstLogin) {
+          navigate('/first-login');
+        } else {
+          navigate('/home'); // Regular users go to home page
+        }
       }
     } catch (error) {
       if (error instanceof Error) {

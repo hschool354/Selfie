@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:8080/api/auth';
+const API_BASE_URL = "http://localhost:8080/api/auth";
 
 export interface SignUpRequestDto {
   username: string;
@@ -9,7 +9,7 @@ export interface SignUpRequestDto {
 }
 
 export interface LoginRequestDto {
-  identifier: string; 
+  identifier: string;
   password: string;
 }
 
@@ -18,11 +18,12 @@ export interface AuthResponseDto {
   username: string;
   email: string;
   isFirstLogin: boolean;
+  isAdmin: boolean;
 }
 
 export interface ProfileDataDto {
-  fullName: string;      
-  phone: string;        
+  fullName: string;
+  phone: string;
   dob: string;
   address: string;
   gender: string;
@@ -36,28 +37,50 @@ export const authService = {
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, loginRequest);
       const token = response.data.token;
-      
-      // Store token immediately
-      localStorage.setItem('token', token);
-      
-      // Check first login status
-      const firstLoginResponse = await axios.get(`${API_BASE_URL}/check-first-login`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+
+      if (!token) {
+        throw new Error("No token received from server");
+      }
+
+      // Store token
+      localStorage.setItem("token", token);
+
+      // Check if user is admin
+      const adminCheckResponse = await axios.get(
+        `${API_BASE_URL}/check-admin`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      });
-      
+      );
+
+      // Only check first login if user is not admin
+      let isFirstLogin = false;
+      if (!adminCheckResponse.data) {
+        const firstLoginResponse = await axios.get(
+          `${API_BASE_URL}/check-first-login`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        isFirstLogin = firstLoginResponse.data;
+      }
+
       const authResponse: AuthResponseDto = {
         ...response.data,
-        isFirstLogin: firstLoginResponse.data
+        isFirstLogin,
+        isAdmin: adminCheckResponse.data
       };
-            
-      localStorage.setItem('user', JSON.stringify(authResponse));
-      
+
+      localStorage.setItem("user", JSON.stringify(authResponse));
+
       return authResponse;
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data || 'Login failed');
+        throw new Error(error.response?.data || "Login failed");
       }
       throw error;
     }
@@ -65,44 +88,53 @@ export const authService = {
 
   signup: async (signUpRequest: SignUpRequestDto): Promise<AuthResponseDto> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/signup`, signUpRequest);
-      
-      // For signup, we know it's always a first login
+      const response = await axios.post(
+        `${API_BASE_URL}/signup`,
+        signUpRequest
+      );
+
       return {
         ...response.data,
-        isFirstLogin: true
+        isFirstLogin: true,
       };
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        throw new Error(error.response?.data || 'Signup failed');
+        throw new Error(error.response?.data || "Signup failed");
       }
       throw error;
     }
   },
 
   completeProfile: async (profileData: ProfileDataDto): Promise<void> => {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No authentication token found');
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No authentication token found");
 
-      try {
-        await axios.post(
-          `${API_BASE_URL}/complete-profile`,
-          profileData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          throw new Error(error.response?.data || 'Failed to complete profile');
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/complete-profile`,
+        profileData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-        throw error;
+      );
+
+      if (response.status !== 200) {
+        throw new Error(response.data || "Failed to complete profile");
       }
-  }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data || "Failed to complete profile";
+        console.error("Complete profile error:", message);
+        throw new Error(message);
+      }
+      throw error;
+    }
+  },
 };
 
 export const logout = (): void => {
-  localStorage.removeItem('user');
+  localStorage.removeItem("user");
 };

@@ -95,29 +95,20 @@ const InitialProfileSetup = () => {
   };
 
   const handleSkip = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Get the user ID from the stored token
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      if (!userData.token) {
-        throw new Error('No authentication token found');
+      try {
+          await authService.completeProfile({
+              fullName: "",
+              phone: "",
+              dob: "",
+              address: "",
+              gender: "",
+              nationality: "", 
+              bio: ""
+          });
+          navigate('/dashboard');
+      } catch (error) {
+          console.error(error);
       }
-  
-      // Call API to mark profile as completed without data
-      await authService.completeProfile(userData.userId, {});
-      
-      // Navigate to dashboard
-      navigate('/dashboard');
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('An unexpected error occurred');
-      }
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (

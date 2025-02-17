@@ -4,6 +4,8 @@ import Login from '../pages/Login';
 import SignUp from '../pages/SignUp';
 import SplashScreen from '../pages/SplashScreen';
 import FirstLogin from '../pages/FirstLogin';
+import ForgotPassword from '../pages/ForgotPassword';
+import OTPVerification from '../pages/OTPVerification';
 
 const router = createBrowserRouter([
   {
@@ -25,6 +27,14 @@ const router = createBrowserRouter([
   {
     path: '/first-login',
     element: <FirstLogin />
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />
+  },
+  {
+    path: '/otp-verification',
+    element: <OTPVerification />
   }
 ]);
 
