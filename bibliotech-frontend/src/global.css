@@ -1,0 +1,5 @@
+@keyframes shimmer {
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
+}
