@@ -5,6 +5,8 @@ import { useTheme } from "../Hooks/useTheme";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { authService } from "../services/authService";
+import { usersService } from "../services/usersService";
+
 
 type ProfileFormData = {
   fullName: string;
@@ -17,15 +19,15 @@ type ProfileFormData = {
   profilePicture?: FileList;
 };
 
-const profileSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  phone: z.string().regex(/^[0-9]{10,15}$/, "Phone number must be between 10-15 digits"),
-  dob: z.string(),
-  gender: z.enum(["Male", "Female", "Other"]),
-  address: z.string().min(5, "Address must be at least 5 characters"),
-  nationality: z.string().min(2, "Nationality must be at least 2 characters"),
-  bio: z.string().max(500, "Bio must not exceed 500 characters"),
-});
+// const profileSchema = z.object({
+//   fullName: z.string().min(2, "Full name must be at least 2 characters"),
+//   phone: z.string().regex(/^[0-9]{10,15}$/, "Phone number must be between 10-15 digits"),
+//   dob: z.string(),
+//   gender: z.enum(["Male", "Female", "Other"]),
+//   address: z.string().min(5, "Address must be at least 5 characters"),
+//   nationality: z.string().min(2, "Nationality must be at least 2 characters"),
+//   bio: z.string().max(500, "Bio must not exceed 500 characters"),
+// });
 
 const InitialProfileSetup = () => {
   const navigate = useNavigate();
@@ -57,7 +59,7 @@ const InitialProfileSetup = () => {
       setError("");
       
       // Validate data
-      profileSchema.parse(data);
+      // profileSchema.parse(data);
       
       // Get the user ID from the stored token
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -79,10 +81,11 @@ const InitialProfileSetup = () => {
       });
   
       // Call API to complete profile
-      await authService.completeProfile(userData.userId, formData);
+      // Trong onSubmit
+      await usersService.completeProfile(formData);
       
       // Navigate to dashboard
-      navigate('/dashboard');
+      navigate('/home');
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -95,21 +98,22 @@ const InitialProfileSetup = () => {
   };
 
   const handleSkip = async () => {
-      try {
-          await authService.completeProfile({
-              fullName: "",
-              phone: "",
-              dob: "",
-              address: "",
-              gender: "",
-              nationality: "", 
-              bio: ""
-          });
-          navigate('/dashboard');
-      } catch (error) {
-          console.error(error);
-      }
-  };
+    try {
+        const formData = new FormData();
+        formData.append('fullName', '');
+        formData.append('phone', '');
+        formData.append('dob', '');
+        formData.append('gender', 'Other');
+        formData.append('address', '');
+        formData.append('nationality', '');
+        formData.append('bio', '');
+        
+        await usersService.completeProfile(formData);
+        navigate('/dashboard');
+    } catch (error) {
+        console.error(error);
+    }
+};
 
   return (
     <div

@@ -67,7 +67,7 @@ const Sidebar = ({ isDarkMode , isCollapsed, setIsCollapsed}) => {
     { name: "Discover", path: "/home/discover", icon: "/icons/icons_home.svg", bg: "bg-blue-600", hoverBg: "hover:bg-blue-500", defaultBg: "bg-blue-50" },
     { name: "Category", path: "/home/category", icon: "/icons/icons_category.svg", bg: "bg-indigo-600", hoverBg: "hover:bg-indigo-500", defaultBg: "bg-indigo-50" },
     { name: "My Library", path: "/home/myLibrary", icon: "/icons/icons_book1.svg", bg: "bg-purple-600", hoverBg: "hover:bg-purple-500", defaultBg: "bg-purple-50" },
-    { name: "History", path: "/home/history", icon: "/icons/icons_history.svg", bg: "bg-violet-600", hoverBg: "hover:bg-violet-500", defaultBg: "bg-violet-50" },
+    { name: "Achievements", path: "/home/achievements", icon: "/icons/icons_achievements.svg", bg: "bg-violet-600", hoverBg: "hover:bg-violet-500", defaultBg: "bg-violet-50" },
     { name: "Favorites", path: "/home/favorites", icon: "/icons/icons_favorite.svg", bg: "bg-fuchsia-600", hoverBg: "hover:bg-fuchsia-500", defaultBg: "bg-fuchsia-50" },
     { name: "Wallet", path: "/home/wallet", icon: "/icons/icons_wallet.svg", bg: "bg-pink-600", hoverBg: "hover:bg-pink-500", defaultBg: "bg-pink-50" },
   ];

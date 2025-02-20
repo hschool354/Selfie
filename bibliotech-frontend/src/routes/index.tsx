@@ -10,6 +10,9 @@ import Home from '../pages/Home';
 import Discover from '../pages/Discover';
 import Category from '../pages/Category';
 import MyLibrary from '../pages/MyLibrary';
+import Achievements from '../pages/Achievements';
+import Favorites from '../pages/Favorites';
+import Wallet from '../pages/Wallet';
 
 const router = createBrowserRouter([
   {
@@ -48,6 +51,9 @@ const router = createBrowserRouter([
       { path: "discover", element: <Discover /> },
       { path: "category", element: <Category /> },
       { path: "myLibrary", element: <MyLibrary /> },
+      { path: "achievements", element: <Achievements /> },
+      { path: "favorites", element: <Favorites /> },
+      { path: "wallet", element: <Wallet /> },
     ],
   }
 ]);

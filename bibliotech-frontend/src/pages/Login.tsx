@@ -57,13 +57,13 @@ const Login = () => {
       
       // Check if user is admin
       if (response.isAdmin) {
-        navigate('/dashboard'); // Admins go straight to dashboard
+        navigate('/dashboard');
       } else {
         // Regular users
         if (response.isFirstLogin) {
           navigate('/first-login');
         } else {
-          navigate('/home'); // Regular users go to home page
+          navigate('/home'); 
         }
       }
     } catch (error) {

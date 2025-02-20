@@ -21,17 +21,6 @@ export interface AuthResponseDto {
   isAdmin: boolean;
 }
 
-export interface ProfileDataDto {
-  fullName: string;
-  phone: string;
-  dob: string;
-  address: string;
-  gender: string;
-  nationality: string;
-  bio: string;
-  profilePictureUrl?: string;
-}
-
 export const authService = {
   login: async (loginRequest: LoginRequestDto): Promise<AuthResponseDto> => {
     try {
@@ -105,34 +94,7 @@ export const authService = {
     }
   },
 
-  completeProfile: async (profileData: ProfileDataDto): Promise<void> => {
-    const token = localStorage.getItem("token");
-    if (!token) throw new Error("No authentication token found");
-
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/complete-profile`,
-        profileData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.status !== 200) {
-        throw new Error(response.data || "Failed to complete profile");
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message = error.response?.data || "Failed to complete profile";
-        console.error("Complete profile error:", message);
-        throw new Error(message);
-      }
-      throw error;
-    }
-  },
+  
 };
 
 export const logout = (): void => {
