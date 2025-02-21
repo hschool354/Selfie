@@ -13,6 +13,8 @@ import MyLibrary from '../pages/MyLibrary';
 import Achievements from '../pages/Achievements';
 import Favorites from '../pages/Favorites';
 import Wallet from '../pages/Wallet';
+import Premium from '../pages/Premium';
+import Settings from '../pages/Setting';
 
 const router = createBrowserRouter([
   {
@@ -54,6 +56,8 @@ const router = createBrowserRouter([
       { path: "achievements", element: <Achievements /> },
       { path: "favorites", element: <Favorites /> },
       { path: "wallet", element: <Wallet /> },
+      { path: "premium", element: <Premium /> },
+      { path: "setting", element: <Settings /> },
     ],
   }
 ]);
