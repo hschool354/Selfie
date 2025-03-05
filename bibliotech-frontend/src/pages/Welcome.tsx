@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  AnimatePresence,
+} from "framer-motion";
 import { Link } from "react-router-dom";
-import { Book, Search, Library, Star, MessageCircle, ChevronRight, Facebook, Twitter, Instagram, Menu, X } from "lucide-react";
+import {
+  Book,
+  Search,
+  Library,
+  Star,
+  MessageCircle,
+  ChevronRight,
+  Facebook,
+  Twitter,
+  Instagram,
+  Menu,
+  X,
+} from "lucide-react";
+import { MainPage } from "../components/components/MainPage";
 
 // Types
 interface Book {
@@ -66,7 +84,8 @@ const testimonials = [
     id: 1,
     name: "Nguyễn Văn A",
     avatar: "/api/placeholder/50/50",
-    comment: "Thư viện online tuyệt vời, giúp tôi tiết kiệm thời gian và chi phí!",
+    comment:
+      "Thư viện online tuyệt vời, giúp tôi tiết kiệm thời gian và chi phí!",
   },
   {
     id: 2,
@@ -131,21 +150,23 @@ const Welcome = () => {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              {["Trang chủ", "Thư viện", "Pricing", "Help Center"].map((item) => (
-                <motion.div
-                  key={item}
-                  whileHover={{ scale: 1.05 }}
-                  className="relative group"
-                >
-                  <Link
-                    to={`/${item.toLowerCase()}`}
-                    className="text-gray-700 hover:text-blue-600 transition-colors"
+              {["Trang chủ", "Thư viện", "Pricing", "Help Center"].map(
+                (item) => (
+                  <motion.div
+                    key={item}
+                    whileHover={{ scale: 1.05 }}
+                    className="relative group"
                   >
-                    {item}
-                  </Link>
-                  <motion.div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300" />
-                </motion.div>
-              ))}
+                    <Link
+                      to={`/${item.toLowerCase()}`}
+                      className="text-gray-700 hover:text-blue-600 transition-colors"
+                    >
+                      {item}
+                    </Link>
+                    <motion.div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300" />
+                  </motion.div>
+                )
+              )}
               <motion.div whileHover={{ scale: 1.05 }}>
                 <Link
                   to="/splash"
@@ -188,15 +209,17 @@ const Welcome = () => {
               className="md:hidden bg-white border-t mt-2"
             >
               <div className="container mx-auto px-4 py-4 space-y-4">
-                {["Trang chủ", "Thư viện", "Pricing", "Help Center"].map((item) => (
-                  <Link
-                    key={item}
-                    to={`/${item.toLowerCase()}`}
-                    className="block text-gray-700 hover:text-blue-600 transition-colors"
-                  >
-                    {item}
-                  </Link>
-                ))}
+                {["Trang chủ", "Thư viện", "Pricing", "Help Center"].map(
+                  (item) => (
+                    <Link
+                      key={item}
+                      to={`/${item.toLowerCase()}`}
+                      className="block text-gray-700 hover:text-blue-600 transition-colors"
+                    >
+                      {item}
+                    </Link>
+                  )
+                )}
                 <div className="flex flex-col space-y-2">
                   <Link
                     to="/login"
@@ -220,55 +243,80 @@ const Welcome = () => {
       {/* Enhanced Hero Section */}
       <motion.section
         style={{ opacity: heroOpacity, y: heroY }}
-        className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
+        className="relative min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-16"
       >
-        <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-        <div className="container mx-auto px-4 text-center relative z-10">
+        {/* Lớp nền lưới */}
+        <div className="absolute inset-0 bg-grid-pattern opacity-10 pointer-events-none" />
+
+        {/* Container chính */}
+        <div className="container mx-auto px-6 lg:px-12 relative z-10">
           <motion.div
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
-            className="max-w-4xl mx-auto"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto"
           >
-            <motion.h1
-              variants={fadeInUp}
-              className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
-            >
-              Khám phá kho sách trực tuyến khổng lồ
-            </motion.h1>
-            <motion.p
-              variants={fadeInUp}
-              className="text-xl text-gray-600 mb-8"
-            >
-              Truy cập hàng nghìn cuốn sách chất lượng mọi lúc, mọi nơi. Đọc, học hỏi và phát triển cùng cộng đồng độc giả.
-            </motion.p>
+            {/* Phần nội dung văn bản */}
+            <motion.div className="text-center lg:text-left space-y-8 order-2 lg:order-1">
+              <motion.h1
+                variants={fadeInUp}
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
+              >
+                Khám phá kho sách trực tuyến khổng lồ
+              </motion.h1>
+              <motion.p
+                variants={fadeInUp}
+                className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0"
+              >
+                Truy cập hàng nghìn cuốn sách chất lượng mọi lúc, mọi nơi. Đọc,
+                học hỏi và phát triển cùng cộng đồng độc giả.
+              </motion.p>
+              <motion.div
+                variants={fadeInUp}
+                className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4"
+              >
+                <Link to="/splash">
+                  <motion.button
+                    whileHover={{
+                      scale: 1.05,
+                      boxShadow: "0 4px 15px rgba(37, 99, 235, 0.2)",
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-300 flex items-center gap-2 group"
+                  >
+                    Bắt đầu ngay
+                    <motion.span
+                      animate={{ x: [0, 4, 0] }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 1.5,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </motion.span>
+                  </motion.button>
+                </Link>
+                <motion.button
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 4px 15px rgba(37, 99, 235, 0.1)",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors duration-300 flex items-center gap-2"
+                >
+                  <Search className="w-5 h-5" />
+                  Tìm kiếm sách
+                </motion.button>
+              </motion.div>
+            </motion.div>
+
+            {/* Phần Canvas 3D */}
             <motion.div
               variants={fadeInUp}
-              className="flex flex-col md:flex-row justify-center gap-4"
+              className="relative w-full h-[600px] lg:h-[700px] order-1 lg:order-2"
             >
-              <Link to="/splash">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 group"
-                >
-                  Bắt đầu ngay
-                  <motion.span
-                    animate={{ x: [0, 4, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </motion.span>
-                </motion.button>
-              </Link>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 border-2 border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <Search className="w-5 h-5" />
-                Tìm kiếm sách
-              </motion.button>
+              <MainPage />
             </motion.div>
           </motion.div>
         </div>
@@ -288,12 +336,14 @@ const Welcome = () => {
               {
                 icon: <Search className="w-12 h-12 text-blue-600" />,
                 title: "Tìm kiếm thông minh",
-                description: "Tìm sách nhanh chóng với công cụ tìm kiếm thông minh.",
+                description:
+                  "Tìm sách nhanh chóng với công cụ tìm kiếm thông minh.",
               },
               {
                 icon: <Book className="w-12 h-12 text-blue-600" />,
                 title: "Đọc sách trực tuyến",
-                description: "Trải nghiệm đọc sách mượt mà với giao diện thân thiện.",
+                description:
+                  "Trải nghiệm đọc sách mượt mà với giao diện thân thiện.",
               },
               {
                 icon: <Library className="w-12 h-12 text-blue-600" />,

@@ -15,6 +15,8 @@ import Favorites from '../pages/Favorites';
 import Wallet from '../pages/Wallet';
 import Premium from '../pages/Premium';
 import Settings from '../pages/Setting';
+import Support from '../pages/Support';
+import InfomationBook from '../pages/informationBook';
 
 const router = createBrowserRouter([
   {
@@ -58,6 +60,8 @@ const router = createBrowserRouter([
       { path: "wallet", element: <Wallet /> },
       { path: "premium", element: <Premium /> },
       { path: "setting", element: <Settings /> },
+      { path: "Support", element: <Support /> },
+      { path: "informationBook", element: <InfomationBook /> }, 
     ],
   }
 ]);
