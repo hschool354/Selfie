@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../Hooks/useTheme";
+import { useLocation } from "react-router-dom";
+import bookService from "../services/bookService";
 import {
   BookOpen,
   Calendar,
@@ -15,56 +17,150 @@ import {
   Timer,
   AlertTriangle,
   Award,
+  ArrowLeft,
 } from "lucide-react";
 
 // Define types
 type DifficultyLevel = "EASY" | "MEDIUM" | "HARD";
 
-// Mock data for similar books
-const similarBooks = [
-  {
-    id: 1,
-    title: "Đắc Nhân Tâm",
-    author: "Dale Carnegie",
-    cover: "/api/placeholder/200/300",
-    rating: 4.5,
-    reviews: 1200,
-  },
-  {
-    id: 2,
-    title: "Nhà Giả Kim",
-    author: "Paulo Coelho",
-    cover: "/api/placeholder/200/300",
-    rating: 4.8,
-    reviews: 980,
-  },
-  // Add more similar books...
-];
-
 const InformationBook = () => {
-  const { isDarkMode } = useTheme();
-  const [isLiked, setIsLiked] = useState(false);
+  const location = useLocation();
+  const passedBookData = location.state?.bookData;
+  const [bookDetails, setBookDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("description");
+  const [isLiked, setIsLiked] = useState(false);
+  const [similarBooks, setSimilarBooks] = useState([]);
+  const [error, setError] = useState(null);
 
-  const bookDetails = {
-    title: "Thiện Ác Đối Đầu",
-    author: "Nguyễn Văn A",
-    cover: "/api/placeholder/400/600",
-    description:
-      "Một câu chuyện về cuộc đấu tranh giữa thiện và ác trong tâm hồn con người. Tác phẩm đi sâu vào việc khám phá bản chất của đạo đức và sự lựa chọn trong cuộc sống...",
-    price: 250000,
-    rating: 4.7,
-    reviews: 856,
-    pages: 420,
-    publishYear: 2023,
-    language: "Tiếng Việt",
-    publisher: "NXB Văn Học",
-    category: "Văn Học Đương Đại",
-    reading_difficulty: "MEDIUM",
-    estimated_reading_time: 480, // minutes
-    content_rating: "TEEN",
-    stock_quantity: 150,
-  };
+  const { isDarkMode } = useTheme();
+
+  useEffect(() => {
+    const fetchBookDetails = async () => {
+      try {
+        setLoading(true);
+        if (passedBookData) {
+          // If we have initial data from navigation
+          const bookId = passedBookData.id;
+
+          try {
+            const response = await bookService.getBookById(bookId);
+
+            // Format the data to match the component's expected structure
+            const formattedBook = {
+              title: response.data.title,
+              author: response.data.author,
+              cover: response.data.coverImageUrl || "/api/placeholder/400/600",
+              description: response.data.description || "",
+              price: response.data.originalPrice,
+              rating: response.data.averageRating || 0,
+              reviews: response.data.ratingCount || 0,
+              pages: response.data.pageCount || 0,
+              publishYear:
+                response.data.publicationYear || new Date().getFullYear(),
+              language: response.data.language || "Tiếng Việt",
+              publisher: "NXB Văn Học", // Default value
+              category:
+                response.data.categories
+                  ?.map((cat) => cat.categoryName)
+                  .join(", ") || "",
+              reading_difficulty: response.data.readingDifficulty || "MEDIUM",
+              estimated_reading_time: response.data.estimatedReadingTime || 480,
+              content_rating: response.data.contentRating || "TEEN",
+              stock_quantity: response.data.stockQuantity || 0,
+            };
+
+            setBookDetails(formattedBook);
+          } catch (apiError) {
+            console.error("Error fetching book details from API:", apiError);
+            // Use default data as fallback if API call fails
+            setBookDetails({
+              title: passedBookData?.title || "Unknown Book",
+              author: passedBookData?.author || "Unknown Author",
+              cover:
+                passedBookData?.coverImageUrl || "/api/placeholder/400/600",
+              description:
+                passedBookData?.description || "No description available",
+              price: passedBookData?.originalPrice || 0,
+              rating: passedBookData?.averageRating || 0,
+              reviews: passedBookData?.ratingCount || 0,
+              pages: passedBookData?.pageCount || 0,
+              publishYear:
+                passedBookData?.publicationYear || new Date().getFullYear(),
+              language: passedBookData?.language || "Tiếng Việt",
+              publisher: "NXB Văn Học", // Default value
+              category:
+                passedBookData?.categories
+                  ?.map((cat) => cat.categoryName)
+                  .join(", ") || "",
+              reading_difficulty: passedBookData?.readingDifficulty || "MEDIUM",
+              estimated_reading_time:
+                passedBookData?.estimatedReadingTime || 480,
+              content_rating: passedBookData?.contentRating || "TEEN",
+              stock_quantity: passedBookData?.stockQuantity || 0,
+            });
+          }
+
+          // Create some mock similar books data
+          const mockSimilarBooks = [
+            {
+              id: 1,
+              title: "Related Book 1",
+              author: "Author Name",
+              cover: "/api/placeholder/300/450",
+              rating: 4.3,
+              reviews: 128,
+            },
+            {
+              id: 2,
+              title: "Related Book 2",
+              author: "Another Author",
+              cover: "/api/placeholder/300/450",
+              rating: 4.1,
+              reviews: 95,
+            },
+            {
+              id: 3,
+              title: "Related Book 3",
+              author: "Third Author",
+              cover: "/api/placeholder/300/450",
+              rating: 4.7,
+              reviews: 218,
+            },
+          ];
+
+          setSimilarBooks(mockSimilarBooks);
+        } else {
+          setError("No book data provided");
+        }
+      } catch (error) {
+        console.error("Error in fetchBookDetails:", error);
+        setError("Failed to load book information");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookDetails();
+  }, [passedBookData]);
+
+  // Show loading state while fetching
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading book details...
+      </div>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen text-red-500">
+        {error}
+      </div>
+    );
+  }
 
   const containerAnimation = {
     hidden: { opacity: 0, y: 20 },
@@ -83,7 +179,7 @@ const InformationBook = () => {
     active: { borderBottom: "2px solid #3B82F6" },
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating) => {
     return Array(5)
       .fill(0)
       .map((_, index) => (
@@ -98,7 +194,7 @@ const InformationBook = () => {
       ));
   };
 
-  const getDifficultyColor = (difficulty: DifficultyLevel) => {
+  const getDifficultyColor = (difficulty) => {
     const colors = {
       EASY: "text-green-500",
       MEDIUM: "text-yellow-500",
@@ -107,11 +203,12 @@ const InformationBook = () => {
     return colors[difficulty] || "text-gray-500";
   };
 
-  const formatReadingTime = (minutes: number) => {
+  const formatReadingTime = (minutes) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
   };
+
   return (
     <div
       className={`flex h-screen overflow-hidden ${
@@ -140,6 +237,19 @@ const InformationBook = () => {
 
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 py-8">
+          {/* Back Button */}
+          <motion.button
+            className={`mb-4 flex items-center gap-2 px-3 py-2 rounded-lg ${
+              isDarkMode
+                ? "bg-gray-800 hover:bg-gray-700"
+                : "bg-white hover:bg-gray-100"
+            } shadow-md transition-colors`}
+            whileHover={{ x: -5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </motion.button>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Book Cover and Actions */}
             <motion.div variants={containerAnimation} className="md:col-span-1">

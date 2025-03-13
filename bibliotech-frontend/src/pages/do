@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "../Hooks/useTheme";
+import { Search, X } from "lucide-react";
+import bookService from "../services/bookService"; 
+import usersService from "../services/usersService"; 
+import { useNavigate } from "react-router-dom";
+
+const Discover = () => {
+  const { isDarkMode } = useTheme();
+  const [selectedBook, setSelectedBook] = useState<(PopularBook | SaleBook) | null>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [userBalance, setUserBalance] = useState<number>(0);
+  const navigate = useNavigate();
+
+  interface PopularBook {
+    id: number;
+    title: string;
+    author: string;
+    price: number;
+    image: string;
+    pages: null;
+    rating: number;
+    reviews: number;
+    description?: string;
+    genres: string[];
+  }
+  
+  interface SaleBook {
+    id: number;
+    title: string;
+    author: string;
+    originalPrice: number;
+    salePrice: number;
+    discount: number;
+    image: string;
+    genres: string[];
+  }
+
+  interface BookResponse {
+    author: string;
+    description: string;
+    categoryNames: string[];
+    averageRating: number;
+  }
+  
+  const [popularBooks, setPopularBooks] = useState<PopularBook[]>([]);
+  const [saleBooks, setSaleBooks] = useState<SaleBook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const handleReadNow = (book) => {
+    navigate(`/book/${book.id}`, { state: { bookData: book } });
+    setSelectedBook(null); 
+  };
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (selectedBook) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [selectedBook]);
+
+  // Fetch popular books and sale books from API
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch top-rated books (popular books)
+        const popularBooksResponse = await bookService.getTopRatedBooks(5);
+
+        // Fetch sale books
+        const saleBooksResponse = await bookService.getSaleBooksCoverInfo();
+
+        // Map the API responses to match our component's expected format
+        const mappedPopularBooks = popularBooksResponse.data.map((book) => ({
+          id: book.bookId,
+          title: book.title,
+          author: book.author,
+          price: Number(book.originalPrice) || 0, // Provide default value
+          image: book.coverImageUrl || "/api/placeholder/300/400",
+          pages: null, // API doesn't provide this info
+          rating: book.averageRating || 0,
+          reviews: 0, // API doesn't provide this info
+          description: book.description,
+          genres: book.categories?.map(category => category.categoryName) || [],
+        }));
+
+        // For sale books, update the mapping to match your API response:
+        const mappedSaleBooks = saleBooksResponse.data
+          .slice(0, 5)
+          .map((book) => ({
+            id: book.bookId,
+            title: book.title,
+            author: "", // API doesn't provide this in sale info
+            originalPrice: Number(book.originalPrice) || 0, // Changed from book.price
+            salePrice: Number(book.discountedPrice) || 0, // Changed from book.salePrice
+            discount: (book.originalPrice, book.discountedPrice), // Calculate from actual prices
+            image: book.coverImageUrl || "/api/placeholder/300/400", // Changed from book.coverImage
+            genres: [], // API doesn't provide this in sale info
+          }));
+
+        setPopularBooks(mappedPopularBooks);
+        setSaleBooks(mappedSaleBooks);
+      } catch (err) {
+        console.error("Error fetching books:", err);
+        setError("Failed to load books. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBooks();
+  }, []);
+
+  // Fetch book details when a sale book is selected
+  useEffect(() => {
+    if (selectedBook && !selectedBook.description) {
+      const fetchBookDetails = async () => {
+        try {
+          const response = await bookService.getBookById(selectedBook.id);
+          const bookDetails = response.data as BookResponse;
+
+          // Update the selected book with additional details
+          setSelectedBook((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              author: bookDetails.author,
+              description: bookDetails.description,
+              genres: bookDetails.categoryNames || [],
+              rating: bookDetails.averageRating || 0,
+            };
+          });
+        } catch (err) {
+          console.error("Error fetching book details:", err);
+        }
+      };
+
+      fetchBookDetails();
+    }
+  }, [selectedBook]);
+
+  useEffect(() => {
+    const fetchUserBalance = async () => {
+      try {
+        const response = await usersService.getCurrentUserBalance();
+        setUserBalance(response.accountBalance);
+      } catch (err) {
+        console.error("Error fetching user balance:", err);
+        // Optionally show an error toast/message
+      }
+    };
+  
+    fetchUserBalance();
+  }, []);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const bookCardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 20,
+      },
+    },
+  };
+
+  const sidebarVariants = {
+    hidden: { x: "100%", opacity: 0 },
+    visible: {
+      x: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      },
+    },
+  };
+  return (
+    ....
+    <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleReadNow(selectedBook)}
+                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-shadow"
+                  >
+                    Read Now
+                  </motion.button>
+                  ..

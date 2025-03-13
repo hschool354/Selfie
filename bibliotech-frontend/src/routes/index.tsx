@@ -17,6 +17,8 @@ import Premium from '../pages/Premium';
 import Settings from '../pages/Setting';
 import Support from '../pages/Support';
 import InfomationBook from '../pages/informationBook';
+import ExploreAllBooks from '../pages/ExploreAllBooks';
+import CategoriesBook from '../pages/CategoriesBook';
 
 const router = createBrowserRouter([
   {
@@ -62,6 +64,8 @@ const router = createBrowserRouter([
       { path: "setting", element: <Settings /> },
       { path: "Support", element: <Support /> },
       { path: "informationBook", element: <InfomationBook /> }, 
+      { path: "exploreAllBook", element: <ExploreAllBooks /> },
+      { path: "categoriesBook", element: <CategoriesBook /> },
     ],
   }
 ]);
