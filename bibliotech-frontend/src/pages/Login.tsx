@@ -57,7 +57,7 @@ const Login = () => {
       
       // Check if user is admin
       if (response.isAdmin) {
-        navigate('/dashboard');
+        navigate('/adminHome');
       } else {
         // Regular users
         if (response.isFirstLogin) {

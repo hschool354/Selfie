@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -17,8 +17,11 @@ import {
 } from "lucide-react";
 import { Alert } from "../components/ui/alert";
 import { AlertDescription } from "../components/ui/AlertDescription";
+import usersService from "../services/usersService";
+import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("personal");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -41,6 +44,25 @@ const Settings = () => {
     },
   });
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userProfile = await usersService.getCurrentUserProfile();
+        setSettings((prev) => ({
+          ...prev,
+          personal: {
+            fullName: userProfile.fullName,
+            email: userProfile.email,
+          },
+        }));
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
   const tabs = [
     { id: "personal", icon: User, label: "Personal Info" },
     { id: "notifications", icon: Bell, label: "Notifications" },
@@ -57,6 +79,11 @@ const Settings = () => {
   const handleSave = () => {
     setShowSuccessAlert(true);
     setTimeout(() => setShowSuccessAlert(false), 3000);
+  };
+
+  const handleLogout = () => {
+    usersService.logout();
+    navigate("/login");
   };
 
   const renderPersonalInfo = () => (
@@ -83,6 +110,13 @@ const Settings = () => {
             type="text"
             className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
             placeholder="John Doe"
+            value={settings.personal?.fullName || ""}
+            onChange={(e) =>
+              setSettings((prev) => ({
+                ...prev,
+                personal: { ...prev.personal, fullName: e.target.value },
+              }))
+            }
           />
         </div>
 
@@ -94,6 +128,13 @@ const Settings = () => {
               type="email"
               className="w-full pl-12 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
               placeholder="john@example.com"
+              value={settings.personal?.email || ""}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  personal: { ...prev.personal, email: e.target.value },
+                }))
+              }
             />
           </div>
         </div>
@@ -347,6 +388,23 @@ const Settings = () => {
                 >
                   <Save className="w-5 h-5" />
                   <span>Save Changes</span>
+                </motion.button>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="mt-8 flex justify-end"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="px-6 py-2 bg-red-500 text-white rounded-xl font-medium shadow-lg hover:bg-red-600 transition-opacity duration-300 flex items-center space-x-2"
+                >
+                  <X className="w-5 h-5" />
+                  <span>Logout</span>
                 </motion.button>
               </motion.div>
             </motion.div>

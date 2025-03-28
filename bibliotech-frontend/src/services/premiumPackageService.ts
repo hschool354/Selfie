@@ -40,8 +40,15 @@ const setAuthHeader = () => {
 const premiumPackageService = {
   
   // Get all active premium packages (public access)
-  getAllActivePackages: (): Promise<AxiosResponse<PremiumPackageResponse[]>> => {
-    return axios.get(`${PREMIUM_PACKAGES_URL}/active`, setAuthHeader());
+  getAllActivePackages: async (): Promise<AxiosResponse<PremiumPackageResponse[]>> => {
+    try {
+      const response = await axios.get(`${PREMIUM_PACKAGES_URL}/active`, setAuthHeader());
+      console.log("Fetched premium packages:", response.data); // Debug log
+      return response;
+    } catch (error) {
+      console.error("Error fetching premium packages:", error); // Debug log
+      throw error;
+    }
   },
 
   // Get all premium packages (admin only)

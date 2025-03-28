@@ -21,6 +21,13 @@ import BookCheckout from '../pages/BookCheckout';
 import ExploreAllBooks from '../pages/ExploreAllBooks';
 import CategoriesBook from '../pages/CategoriesBook';
 
+// Admin
+import AdminHome from '../pages/AdminHome';
+import Dashboard from '../pages/Dashboard';
+import AdminUsers from '../pages/AdminUsers';
+import AdminBooks from '../pages/AdminBooks'; 
+
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -69,7 +76,17 @@ const router = createBrowserRouter([
       { path: "categoriesBook", element: <CategoriesBook /> },
       { path: "bookCheckout", element: <BookCheckout /> },
     ],
-  }
+  },
+  {
+    path: '/adminHome',
+    element: <AdminHome />,
+    children: [
+      { index: true, element: <Dashboard /> }, 
+      { path: "dashboard", element: <Dashboard /> },
+      { path: "adminUsers", element: <AdminUsers /> },
+      { path: "adminBooks", element: <AdminBooks /> },
+    ],
+  },
 ]);
 
 export default router;

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AxiosResponse from 'axios' 
 
 const API_BASE_URL = "http://localhost:8080/api/users";
 
@@ -362,10 +363,39 @@ export const usersService = {
       }
       throw error;
     }
+  },
+
+  getAllUsers: async (): Promise<AxiosResponse<UserDto[]>> => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found in localStorage");
+        throw new Error("Authentication token is missing. Please log in again.");
+      }
+
+      console.log("Using token:", token); // Debug log
+      const response = await axios.get(`${API_BASE_URL}/all`, getAuthHeader());
+      console.log("Fetched all users:", response.data); // Debug log
+      return response;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          console.error("Access denied: Admin privileges are required.");
+          throw new Error("Access denied. Only admins can access this resource.");
+        }
+        console.error("Error fetching all users:", error.message);
+      }
+      throw error;
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   }
 };
 
-export default  usersService;
+export default usersService;
 
 export const logout = (): void => {
   localStorage.removeItem("token");

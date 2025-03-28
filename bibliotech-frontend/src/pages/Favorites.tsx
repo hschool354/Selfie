@@ -1,32 +1,81 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../Hooks/useTheme";
 import { Heart, Trash2, Star, BookOpen, X, ChevronLeft } from "lucide-react";
+import wishlistService from "../services/WishlistService";
+import bookService from "../services/bookService";
+import usersService from "../services/usersService";
 
 const Favorites = () => {
   const { isDarkMode } = useTheme();
   const [selectedBook, setSelectedBook] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [favoritedBooks, setFavoritedBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userBalance, setUserBalance] = useState(0);
 
-  // Sample favorited books data
-  const favoritedBooks = [
-    {
-      id: 1,
-      title: "To Kill a Mockingbird",
-      author: "Harper Lee",
-      price: 4.99,
-      dateAdded: "2024-02-15",
-      pages: 336,
-      rating: 4.5,
-      reviews: 100,
-      description: "Harper Lee's Pulitzer Prize-winning masterwork of honor and injustice in the deep South—and the heroism of one man in the face of blind and violent hatred.",
-      coverUrl: "/api/placeholder/300/400"
+  // Fetch wishlist when component mounts
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      try {
+        setLoading(true);
+        const response = await wishlistService.getMyWishlist();
+        const wishlistData = await Promise.all(
+          response.data.map(async (item) => {
+            const bookDetails = await bookService.getBookById(item.bookId);
+            return {
+              id: item.bookId,
+              title: bookDetails.data.title,
+              author: bookDetails.data.author,
+              price: bookDetails.data.discountedPrice || bookDetails.data.originalPrice,
+              dateAdded: item.addedDate,
+              pages: bookDetails.data.pageCount || 0,
+              rating: bookDetails.data.averageRating || 0,
+              reviews: bookDetails.data.ratingCount || 0,
+              description: bookDetails.data.description || "No description available",
+              coverUrl: bookDetails.data.coverImageUrl || "/api/placeholder/300/400",
+            };
+          })
+        );
+        setFavoritedBooks(wishlistData);
+      } catch (err) {
+        setError("Failed to load wishlist. Please try again.");
+        console.error("Error fetching wishlist:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserBalance = async () => {
+      try {
+        const balanceData = await usersService.getCurrentUserBalance();
+        setUserBalance(balanceData.accountBalance);
+      } catch (err) {
+        console.error("Error fetching user balance:", err);
+      }
+    };
+
+    fetchUserBalance();
+  }, []);
+
+  // Handle removing book from wishlist
+  const handleRemoveFromFavorites = async (bookId) => {
+    try {
+      await wishlistService.removeBookFromWishlist(bookId);
+      setFavoritedBooks(prevBooks => prevBooks.filter(book => book.id !== bookId));
+      setShowDeleteConfirm(null);
+      if (selectedBook?.id === bookId) {
+        setSelectedBook(null);
+      }
+    } catch (err) {
+      console.error("Error removing from wishlist:", err);
+      setError("Failed to remove book from wishlist.");
     }
-  ];
-
-  const handleRemoveFromFavorites = (bookId) => {
-    setShowDeleteConfirm(null);
-    console.log("Removing book:", bookId);
   };
 
   const containerVariants = {
@@ -73,6 +122,22 @@ const Favorites = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Loading wishlist...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       <main 
@@ -95,7 +160,7 @@ const Favorites = () => {
                 <h1 className="text-2xl font-bold">My Favorites</h1>
               </div>
               <div className="flex items-center gap-6">
-                <span className="font-medium">Balance: $0.00</span>
+                <span className="font-medium">Balance: ${userBalance.toFixed(2)}</span>
                 <motion.div 
                   whileHover={{ scale: 1.05 }}
                   className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500"
@@ -106,58 +171,64 @@ const Favorites = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 py-6">
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
-          >
-            <AnimatePresence>
-              {favoritedBooks.map((book) => (
-                <motion.div
-                  key={book.id}
-                  variants={bookCardVariants}
-                  whileHover={{ y: -5 }}
-                  className={`group relative rounded-xl overflow-hidden ${
-                    isDarkMode ? "bg-gray-800" : "bg-white"
-                  } shadow-lg hover:shadow-xl transition-shadow duration-300`}
-                >
-                  <motion.div 
-                    className="aspect-[3/4] relative cursor-pointer"
-                    onClick={() => setSelectedBook(book)}
+          {favoritedBooks.length === 0 ? (
+            <p className="text-center text-gray-500 dark:text-gray-400">
+              Your wishlist is empty.
+            </p>
+          ) : (
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
+            >
+              <AnimatePresence>
+                {favoritedBooks.map((book) => (
+                  <motion.div
+                    key={book.id}
+                    variants={bookCardVariants}
+                    whileHover={{ y: -5 }}
+                    className={`group relative rounded-xl overflow-hidden ${
+                      isDarkMode ? "bg-gray-800" : "bg-white"
+                    } shadow-lg hover:shadow-xl transition-shadow duration-300`}
                   >
-                    <img 
-                      src={book.coverUrl} 
-                      alt={book.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </motion.div>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="absolute top-3 right-3 p-2 rounded-full bg-red-500/10 hover:bg-red-500/20 backdrop-blur-sm"
-                    onClick={() => setShowDeleteConfirm(book.id)}
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </motion.button>
+                    <motion.div 
+                      className="aspect-[3/4] relative cursor-pointer"
+                      onClick={() => setSelectedBook(book)}
+                    >
+                      <img 
+                        src={book.coverUrl} 
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    </motion.div>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="absolute top-3 right-3 p-2 rounded-full bg-red-500/10 hover:bg-red-500/20 backdrop-blur-sm"
+                      onClick={() => setShowDeleteConfirm(book.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </motion.button>
 
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg mb-1 line-clamp-1">{book.title}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">{book.author}</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm font-medium">{book.rating}</span>
+                    <div className="p-4">
+                      <h3 className="font-semibold text-lg mb-1 line-clamp-1">{book.title}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">{book.author}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                          <span className="text-sm font-medium">{book.rating}</span>
+                        </div>
+                        <p className="text-blue-600 dark:text-blue-400 font-medium">${book.price}</p>
                       </div>
-                      <p className="text-blue-600 dark:text-blue-400 font-medium">${book.price}</p>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
       </main>
 

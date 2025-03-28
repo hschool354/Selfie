@@ -172,6 +172,25 @@ const transactionService = {
   getUserPurchasedBooks: (userId: number): Promise<AxiosResponse<BookResponse[]>> => {
     return axios.get(`${TRANSACTIONS_URL}/users/${userId}/purchased-books`, setAuthHeader());
   },
+
+  // Get all transactions
+  getAllTransactions: async (): Promise<AxiosResponse<TransactionResponse[]>> => {
+    try {
+      console.log("Fetching all transactions...");
+      const response = await axios.get(`${TRANSACTIONS_URL}/all`, setAuthHeader());
+      console.log("Fetched all transactions:", response.data); // Debug log
+      return response;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          console.error("Access denied: Admin privileges are required.");
+          throw new Error("Access denied. Only admins can access this resource.");
+        }
+        console.error("Error fetching all transactions:", error.message);
+      }
+      throw error;
+    }
+  },
 };
 
 export default transactionService;

@@ -17,11 +17,12 @@ const Premium = () => {
     try {
       setLoading(true);
       const response = await premiumPackageService.getAllActivePackages();
+      console.log("Premium packages loaded:", response.data); // Debug log
       setPremiumPlans(response.data);
-      setLoading(false);
     } catch (err) {
-      console.error('Error fetching premium packages:', err);
-      setError('Unable to load premium packages. Please try again later.');
+      console.error("Error fetching premium packages:", err); // Debug log
+      setError("Unable to load premium packages. Please try again later.");
+    } finally {
       setLoading(false);
     }
   };
