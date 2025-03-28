@@ -1,66 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../Hooks/useTheme';
 import { Trophy, Book, Clock, Star, Award, Flame, Zap, ScrollText } from 'lucide-react';
+import cultivationService from '../services/cultivationService';
 
 const Achievements = () => {
   const { isDarkMode } = useTheme();
   const [selectedLevel, setSelectedLevel] = useState(null);
+  const [cultivationLevels, setCultivationLevels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [userProgress, setUserProgress] = useState(null);
+  const [achievements, setAchievements] = useState([]);
 
-  const cultivationLevels = [
-    { 
-      id: 1, 
-      name: "Phàm Nhân", 
-      progress: 100, 
-      description: "Bước đầu tu luyện",
-      booksRequired: 0,
-      readingTime: 0,
-      points: 0,
-      icon: ScrollText
-    },
-    { 
-      id: 2, 
-      name: "Luyện Khí", 
-      progress: 80, 
-      description: "Tích lũy tri thức cơ bản",
-      booksRequired: 5,
-      readingTime: 10,
-      points: 100,
-      icon: Book
-    },
-    { 
-      id: 3, 
-      name: "Trúc Cơ", 
-      progress: 45, 
-      description: "Nền tảng vững chắc",
-      booksRequired: 15,
-      readingTime: 30,
-      points: 300,
-      icon: Flame
-    },
-    { 
-      id: 4, 
-      name: "Kim Đan", 
-      progress: 20, 
-      description: "Kiến thức uyên thâm",
-      booksRequired: 30,
-      readingTime: 60,
-      points: 600,
-      icon: Star
-    },
-    { 
-      id: 5, 
-      name: "Nguyên Anh", 
-      progress: 0, 
-      description: "Học giả uyên bác",
-      booksRequired: 50,
-      readingTime: 100,
-      points: 1000,
-      icon: Zap
-    }
-  ];
+  // Map icon names to Lucide components
+  const iconMap = {
+    'SCROLL': ScrollText,
+    'BOOK': Book,
+    'FLAME': Flame,
+    'STAR': Star,
+    'ZAP': Zap,
+    'TROPHY': Trophy,
+    'CLOCK': Clock,
+    'AWARD': Award
+  };
 
-  const achievements = [
+  // Calculate progress for each level based on user's stats
+  const calculateProgress = (level) => {
+    if (!userProgress) return 0;
+    
+    // If books required is 0, return 100% (already completed)
+    if (level.booksRequired === 0) return 100;
+    
+    // Calculate progress based on books read
+    const bookProgress = Math.min(100, (userProgress.totalBooksRead / level.booksRequired) * 100);
+    
+    // You could also factor in reading time if needed
+    // const timeProgress = Math.min(100, (userProgress.totalReadingTime / level.readingTimeRequired) * 100);
+    
+    // For now, just use book progress
+    return Math.round(bookProgress);
+  };
+
+  // Check if a level is the current level or already completed
+  const getLevelStatus = (levelId) => {
+    if (!userProgress || !userProgress.currentLevel) return 'locked';
+    
+    if (userProgress.currentLevel.levelId === levelId) return 'current';
+    if (userProgress.currentLevel.levelId > levelId) return 'completed';
+    
+    return 'locked';
+  };
+
+  // Mock achievements data (would be fetched from an API in a real application)
+  const mockAchievements = [
     { 
       id: 1, 
       type: "FIRST_BOOK",
@@ -98,6 +91,97 @@ const Achievements = () => {
       icon: ScrollText
     }
   ];
+
+  // Fetch cultivation levels from API
+  useEffect(() => {
+    const fetchCultivationLevels = async () => {
+      try {
+        setLoading(true);
+        const response = await cultivationService.getAllCultivationLevels();
+        
+        // Transform the data to include the icon component
+        const levelsWithIcons = response.data.map(level => {
+          // Extract icon name from iconUrl or use a default
+          const iconKey = level.iconUrl.includes('/') 
+            ? level.iconUrl.split('/').pop().split('.')[0].toUpperCase() 
+            : level.iconUrl.toUpperCase();
+          
+          return {
+            id: level.levelId,
+            name: level.levelName,
+            description: level.levelDescription || '',
+            booksRequired: level.booksRequired,
+            readingTime: level.readingTimeRequired,
+            points: level.booksRequired * 20, // Example calculation for points
+            icon: iconMap[iconKey] || ScrollText, // Default to ScrollText if icon not found
+          };
+        });
+        
+        // Sort by ID to ensure proper order
+        levelsWithIcons.sort((a, b) => a.id - b.id);
+        
+        setCultivationLevels(levelsWithIcons);
+        setAchievements(mockAchievements); // Set mock achievements
+      } catch (err) {
+        console.error('Error fetching cultivation levels:', err);
+        setError('Failed to load cultivation levels');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCultivationLevels();
+  }, []);
+
+  // Fetch user cultivation data
+  useEffect(() => {
+    const fetchUserCultivation = async () => {
+      try {
+        // Get the user ID from localStorage or context
+        const userId = localStorage.getItem('userId') || '1'; // Default to 1 for demo
+        
+        const response = await cultivationService.getUserCultivationById(parseInt(userId, 10));
+        
+        setUserProgress({
+          currentLevel: response.data.currentLevel,
+          totalBooksRead: response.data.totalBooksRead,
+          totalReadingTime: response.data.totalReadingTime,
+          cultivationPoints: response.data.cultivationPoints,
+          lastLevelUpDate: response.data.lastLevelUpDate
+        });
+      } catch (err) {
+        console.error('Error fetching user cultivation data:', err);
+        // Fallback to dummy data for development
+        setUserProgress({
+          currentLevel: { levelId: 1, levelName: 'Luyện Khí' },
+          totalBooksRead: 4,
+          totalReadingTime: 480, // in minutes (8 hours)
+          cultivationPoints: 100
+        });
+      }
+    };
+
+    fetchUserCultivation();
+  }, []);
+
+  // Calculate progress for levels once both levels and user data are loaded
+  useEffect(() => {
+    if (cultivationLevels.length > 0 && userProgress) {
+      const updatedLevels = cultivationLevels.map(level => ({
+        ...level,
+        progress: calculateProgress(level),
+        status: getLevelStatus(level.id)
+      }));
+      
+      setCultivationLevels(updatedLevels);
+    }
+  }, [userProgress]); // Remove cultivationLevels from the dependency array
+
+  // Find the current level name for display
+  const getCurrentLevelName = () => {
+    if (!userProgress || !userProgress.currentLevel) return 'Loading...';
+    return userProgress.currentLevel.levelName;
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -137,7 +221,7 @@ const Achievements = () => {
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-blue-500" />
-                  <span className="font-medium">Cấp độ: Luyện Khí</span>
+                  <span className="font-medium">Cấp độ: {getCurrentLevelName()}</span>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700"></div>
               </div>
@@ -150,63 +234,86 @@ const Achievements = () => {
             <section className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Cảnh Giới Tu Luyện</h2>
-                <span className="text-blue-500">100 điểm tu luyện</span>
+                <span className="text-blue-500">
+                  {userProgress ? `${userProgress.cultivationPoints} điểm tu luyện` : 'Đang tải...'}
+                </span>
               </div>
-              <div className="grid gap-4">
-                {cultivationLevels.map((level) => (
-                  <motion.div
-                    key={level.id}
-                    whileHover={{ y: -2 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                    onClick={() => setSelectedLevel(selectedLevel === level.id ? null : level.id)}
-                    className={`p-4 rounded-lg ${
-                      isDarkMode ? "bg-gray-800" : "bg-white"
-                    } shadow hover:shadow-md cursor-pointer`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <level.icon className={`w-6 h-6 ${level.progress === 100 ? "text-blue-500" : "text-gray-400"}`} />
-                        <div>
-                          <h3 className="font-bold">{level.name}</h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {level.description}
-                          </p>
+              
+              {loading ? (
+                <div className={`p-8 rounded-lg ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow text-center`}>
+                  <p>Đang tải dữ liệu cảnh giới...</p>
+                </div>
+              ) : error ? (
+                <div className={`p-8 rounded-lg ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow text-center text-red-500`}>
+                  <p>{error}</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {cultivationLevels.map((level) => (
+                    <motion.div
+                      key={level.id}
+                      whileHover={{ y: -2 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                      onClick={() => setSelectedLevel(selectedLevel === level.id ? null : level.id)}
+                      className={`p-4 rounded-lg ${
+                        isDarkMode ? "bg-gray-800" : "bg-white"
+                      } shadow hover:shadow-md cursor-pointer`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <level.icon className={`w-6 h-6 ${
+                            level.status === 'completed' ? "text-blue-500" : 
+                            level.status === 'current' ? "text-yellow-500" : 
+                            "text-gray-400"
+                          }`} />
+                          <div>
+                            <h3 className="font-bold">{level.name}</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {level.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{level.points} điểm</p>
+                          <p className="text-xs text-gray-500">Yêu cầu</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">{level.points} điểm</p>
-                        <p className="text-xs text-gray-500">Yêu cầu</p>
-                      </div>
-                    </div>
-                    
-                    {selectedLevel === level.id && (
-                      <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                        <div className={`p-3 rounded-lg ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
-                          <p className="text-gray-500">Sách cần đọc</p>
-                          <p className="font-medium">{level.booksRequired} cuốn</p>
+                      
+                      {selectedLevel === level.id && (
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                          <div className={`p-3 rounded-lg ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
+                            <p className="text-gray-500">Sách cần đọc</p>
+                            <p className="font-medium">{level.booksRequired} cuốn</p>
+                          </div>
+                          <div className={`p-3 rounded-lg ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
+                            <p className="text-gray-500">Thời gian đọc</p>
+                            <p className="font-medium">{level.readingTime} giờ</p>
+                          </div>
                         </div>
-                        <div className={`p-3 rounded-lg ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
-                          <p className="text-gray-500">Thời gian đọc</p>
-                          <p className="font-medium">{level.readingTime} giờ</p>
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>{level.booksRequired} sách</span>
-                        <span>{level.progress}%</span>
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>
+                            {userProgress ? `${userProgress.totalBooksRead}/${level.booksRequired} sách` : 'Đang tải...'}
+                          </span>
+                          <span>{level.progress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              level.status === 'completed' ? "bg-blue-500" : 
+                              level.status === 'current' ? "bg-yellow-500" : 
+                              "bg-gray-400"
+                            }`}
+                            style={{ width: `${level.progress || 0}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                          style={{ width: `${level.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section>

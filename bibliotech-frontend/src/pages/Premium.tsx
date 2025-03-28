@@ -1,9 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Check, Star, Gift, Shield, Zap } from 'lucide-react';
+import premiumPackageService, { PremiumPackageResponse } from '../services/premiumPackageService';
 
 const Premium = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [premiumPlans, setPremiumPlans] = useState<PremiumPackageResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPremiumPackages();
+  }, []);
+
+  const fetchPremiumPackages = async () => {
+    try {
+      setLoading(true);
+      const response = await premiumPackageService.getAllActivePackages();
+      setPremiumPlans(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching premium packages:', err);
+      setError('Unable to load premium packages. Please try again later.');
+      setLoading(false);
+    }
+  };
 
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
@@ -37,30 +58,41 @@ const Premium = () => {
     }
   ];
 
-  const premiumPlans = [
-    {
-      id: "monthly",
-      name: "Monthly",
-      price: 9.99,
-      period: "month",
-      features: ["All Premium Features", "Cancel Anytime", "Monthly Updates"]
-    },
-    {
-      id: "yearly",
-      name: "Yearly",
-      price: 99.99,
-      period: "year",
-      features: ["All Premium Features", "2 Months Free", "Priority Support"],
-      popular: true
-    },
-    {
-      id: "lifetime",
-      name: "Lifetime",
-      price: 299.99,
-      period: "one-time",
-      features: ["Lifetime Access", "All Future Updates", "VIP Support"]
+  // Helper function to determine if a package is the most popular one
+  const isPopularPlan = (plan: PremiumPackageResponse) => {
+    if (premiumPlans.length === 0) return false;
+    
+    // You can implement your own logic here to determine which plan should be highlighted as popular
+    // For example, the yearly plan is often considered the most popular
+    return plan.billingCycle === 'YEARLY';
+  };
+
+  // Helper function to get the period display text based on billing cycle
+  const getPeriodText = (billingCycle: string) => {
+    switch (billingCycle) {
+      case 'MONTHLY':
+        return 'month';
+      case 'YEARLY':
+        return 'year';
+      default:
+        return 'period';
     }
-  ];
+  };
+
+  // Helper function to parse features JSON string to array
+  const parseFeatures = (featuresJson: string): string[] => {
+    try {
+      // Handle case where features might be null or undefined
+      if (!featuresJson) return ['All Premium Features'];
+      
+      const parsed = JSON.parse(featuresJson);
+      // Make sure we return an array even if parsing succeeds but gives a non-array
+      return Array.isArray(parsed) ? parsed : ['All Premium Features'];
+    } catch (e) {
+      console.error('Error parsing features JSON:', e);
+      return ['All Premium Features'];
+    }
+  };
 
   return (
     <div className="h-screen overflow-y-auto bg-gray-50 scroll-smooth" style={{
@@ -181,64 +213,77 @@ const Premium = () => {
             Choose Your Premium Plan
           </motion.h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {premiumPlans.map((plan) => (
-              <motion.div 
-                key={plan.id}
-                variants={fadeInUp}
-                whileHover={{ scale: 1.02 }}
-                className={`relative p-6 rounded-2xl bg-white shadow-xl
-                  ${plan.popular ? 'border-2 border-blue-500 breathing-border' : 'border border-gray-200'}
-                  ${selectedPlan === plan.id ? 'ring-4 ring-blue-500 scale-105' : ''}
-                `}
-              >
-                {plan.popular && (
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">{error}</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {premiumPlans.map((plan) => {
+                const isPopular = isPopularPlan(plan);
+                const features = parseFeatures(plan.features);
+                
+                return (
                   <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-medium"
+                    key={plan.packageId}
+                    variants={fadeInUp}
+                    whileHover={{ scale: 1.02 }}
+                    className={`relative p-6 rounded-2xl bg-white shadow-xl
+                      ${isPopular ? 'border-2 border-blue-500 breathing-border' : 'border border-gray-200'}
+                      ${selectedPlan === plan.packageId ? 'ring-4 ring-blue-500 scale-105' : ''}
+                    `}
                   >
-                    Most Popular
-                  </motion.div>
-                )}
+                    {isPopular && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-medium"
+                      >
+                        Most Popular
+                      </motion.div>
+                    )}
 
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                    {plan.name}
-                  </h3>
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
-                      ${plan.price}
-                    </span>
-                    <span className="text-gray-500">/{plan.period}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  {plan.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-blue-500" />
-                      <span className="text-gray-600">{feature}</span>
+                    <div className="text-center mb-6">
+                      <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                        {plan.packageName}
+                      </h3>
+                      <div className="flex items-center justify-center gap-1">
+                        <span className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                          ${plan.price}
+                        </span>
+                        <span className="text-gray-500">/{getPeriodText(plan.billingCycle)}</span>
+                      </div>
                     </div>
-                  ))}
-                </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedPlan(plan.id)}
-                  className={`w-full py-3 rounded-xl font-medium transition-all duration-300
-                    ${plan.popular
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:opacity-90'
-                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                    }`}
-                >
-                  Select Plan
-                </motion.button>
-              </motion.div>
-            ))}
-          </div>
+                    <div className="space-y-3 mb-6">
+                      {features.map((feature, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Check className="w-5 h-5 text-blue-500" />
+                          <span className="text-gray-600">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setSelectedPlan(plan.packageId)}
+                      className={`w-full py-3 rounded-xl font-medium transition-all duration-300
+                        ${isPopular
+                          ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:opacity-90'
+                          : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        }`}
+                    >
+                      Select Plan
+                    </motion.button>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </motion.section>
     </div>

@@ -85,7 +85,7 @@ const testimonials = [
     name: "Nguyễn Văn A",
     avatar: "/api/placeholder/50/50",
     comment:
-      "Thư viện online tuyệt vời, giúp tôi tiết kiệm thời gian và chi phí!",
+      "Library online tuyệt vời, giúp tôi tiết kiệm thời gian và chi phí!",
   },
   {
     id: 2,
@@ -150,7 +150,7 @@ const Welcome = () => {
 
             {/* Desktop Menu */}
             <div className="hidden md:flex items-center space-x-8">
-              {["Trang chủ", "Thư viện", "Pricing", "Help Center"].map(
+              {["Home", "Library", "Pricing", "Help Center"].map(
                 (item) => (
                   <motion.div
                     key={item}
@@ -172,7 +172,7 @@ const Welcome = () => {
                   to="/splash"
                   className="px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
                 >
-                  Đăng nhập
+                  Login
                 </Link>
               </motion.div>
               <motion.div
@@ -183,7 +183,7 @@ const Welcome = () => {
                   to="/splash"
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
-                  Đăng ký
+                  Sign Up
                 </Link>
               </motion.div>
             </div>
@@ -209,7 +209,7 @@ const Welcome = () => {
               className="md:hidden bg-white border-t mt-2"
             >
               <div className="container mx-auto px-4 py-4 space-y-4">
-                {["Trang chủ", "Thư viện", "Pricing", "Help Center"].map(
+                {["Trang chủ", "Library", "Pricing", "Help Center"].map(
                   (item) => (
                     <Link
                       key={item}
@@ -225,13 +225,13 @@ const Welcome = () => {
                     to="/login"
                     className="px-4 py-2 text-center text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
                   >
-                    Đăng nhập
+                    Login
                   </Link>
                   <Link
                     to="/register"
                     className="px-4 py-2 text-center bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   >
-                    Đăng ký
+                    Sign Up
                   </Link>
                 </div>
               </div>
@@ -262,14 +262,13 @@ const Welcome = () => {
                 variants={fadeInUp}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
               >
-                Khám phá kho sách trực tuyến khổng lồ
+                Discover a Vast Online Library
               </motion.h1>
               <motion.p
                 variants={fadeInUp}
                 className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0"
               >
-                Truy cập hàng nghìn cuốn sách chất lượng mọi lúc, mọi nơi. Đọc,
-                học hỏi và phát triển cùng cộng đồng độc giả.
+                Access thousands of quality books anytime, anywhere. Read, learn, and grow with the reader community.
               </motion.p>
               <motion.div
                 variants={fadeInUp}
@@ -284,7 +283,7 @@ const Welcome = () => {
                     whileTap={{ scale: 0.95 }}
                     className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors duration-300 flex items-center gap-2 group"
                   >
-                    Bắt đầu ngay
+                    Get Started Now
                     <motion.span
                       animate={{ x: [0, 4, 0] }}
                       transition={{
@@ -306,7 +305,7 @@ const Welcome = () => {
                   className="px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors duration-300 flex items-center gap-2"
                 >
                   <Search className="w-5 h-5" />
-                  Tìm kiếm sách
+                  Search Books
                 </motion.button>
               </motion.div>
             </motion.div>
@@ -335,25 +334,25 @@ const Welcome = () => {
             {[
               {
                 icon: <Search className="w-12 h-12 text-blue-600" />,
-                title: "Tìm kiếm thông minh",
+                title: "Smart Search",
                 description:
-                  "Tìm sách nhanh chóng với công cụ tìm kiếm thông minh.",
+                  "Find books quickly with our smart search tool.",
               },
               {
                 icon: <Book className="w-12 h-12 text-blue-600" />,
-                title: "Đọc sách trực tuyến",
+                title: "Online Reading",
                 description:
-                  "Trải nghiệm đọc sách mượt mà với giao diện thân thiện.",
+                  "Enjoy a smooth reading experience with a friendly interface.",
               },
               {
                 icon: <Library className="w-12 h-12 text-blue-600" />,
-                title: "Quản lý thư viện",
-                description: "Sắp xếp và quản lý sách yêu thích của bạn.",
+                title: "Library Management",
+                description: "Organize and manage your favorite books.",
               },
               {
                 icon: <MessageCircle className="w-12 h-12 text-blue-600" />,
-                title: "Đánh giá & bình luận",
-                description: "Chia sẻ cảm nhận với cộng đồng độc giả.",
+                title: "Reviews & Comments",
+                description: "Share your thoughts with the reader community.",
               },
             ].map((feature, index) => (
               <motion.div
@@ -389,7 +388,7 @@ const Welcome = () => {
             viewport={{ once: true }}
             className="text-4xl font-bold text-center mb-16"
           >
-            Sách nổi bật
+            Featured Books
           </motion.h2>
           <motion.div
             variants={staggerContainer}
@@ -424,7 +423,7 @@ const Welcome = () => {
                     whileTap={{ scale: 0.95 }}
                     className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   >
-                    Đọc ngay
+                    Read Now
                   </motion.button>
                 </div>
               </motion.div>
@@ -443,7 +442,7 @@ const Welcome = () => {
             viewport={{ once: true }}
             className="text-4xl font-bold text-center mb-16"
           >
-            Đánh giá từ độc giả
+            Reader Reviews
           </motion.h2>
           <motion.div
             variants={staggerContainer}
@@ -511,18 +510,17 @@ const Welcome = () => {
         <div className="container mx-auto text-center relative z-10">
           <motion.div variants={fadeInUp}>
             <h2 className="text-4xl md:text-5xl font-bold mb-8">
-              Sẵn sàng bắt đầu hành trình đọc sách?
+              Ready to Start Your Reading Journey?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Tham gia cùng hàng nghìn độc giả và khám phá thế giới tri thức
-              ngay hôm nay.
+              Join thousands of readers and explore a world of knowledge today.
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-8 py-4 bg-white text-blue-600 rounded-md font-semibold hover:bg-blue-50 transition-colors"
             >
-              Đăng ký ngay
+              Sign Up Now
             </motion.button>
           </motion.div>
         </div>
@@ -556,7 +554,7 @@ const Welcome = () => {
                 </div>
                 <span className="text-2xl font-bold text-white">Selfie</span>
               </div>
-              <p className="mb-6">Thư viện trực tuyến hàng đầu Việt Nam</p>
+              <p className="mb-6">Vietnam's Leading Online Library</p>
               <div className="flex space-x-4">
                 {[Facebook, Twitter, Instagram].map((Icon, index) => (
                   <motion.a
@@ -573,19 +571,17 @@ const Welcome = () => {
 
             {[
               {
-                title: "Liên kết",
-                links: ["Về chúng tôi", "Blog", "Điều khoản"],
+                title: "Links",
+                links: ["About Us", "Blog", "Terms"],
               },
               {
-                title: "Hỗ trợ",
-                links: ["FAQ", "Liên hệ", "Hướng dẫn"],
+                title: "Support",
+                links: ["FAQ", "Contact", "Guide"],
               },
               {
-                title: "Liên hệ",
+                title: "Contact",
                 content: [
-                  "Email: contact@mylibrary.com",
-                  "Điện thoại: (84) 123-456-789",
-                  "Địa chỉ: Hà Nội, Việt Nam",
+                  "Email: contact@mylibrary.com",                  
                 ],
               },
             ].map((section, index) => (
@@ -621,8 +617,7 @@ const Welcome = () => {
             className="mt-16 pt-8 border-t border-gray-800 text-center"
           >
             <p>
-              &copy; {new Date().getFullYear()} MyLibrary. Tất cả các quyền được
-              bảo lưu.
+              &copy; {new Date().getFullYear()} MyLibrary. All rights reserved.
             </p>
           </motion.div>
         </motion.div>

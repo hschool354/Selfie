@@ -1,214 +1,658 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../Hooks/useTheme";
-import { Search, X } from "lucide-react";
-import bookService from "../services/bookService"; 
-import usersService from "../services/usersService"; 
-import { useNavigate } from "react-router-dom";
+import {
+  PlusCircle,
+  CreditCard,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Wallet2,
+  Clock,
+  TrendingUp,
+  ChevronRight,
+  X,
+  AlertCircle,
+} from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-const Discover = () => {
+// Import services
+import transactionService, {
+  TransactionResponse,
+  TransactionRequest,
+  TransactionType,
+  TransactionStatus,
+} from "../services/transactionService";
+
+import paymentMethodService, {
+  PaymentMethodResponse,
+  PaymentMethodRequest,
+  MethodType,
+} from "../services/paymentMethodService";
+import usersService from "../services/usersService";
+
+const WalletDashboard = () => {
   const { isDarkMode } = useTheme();
-  const [selectedBook, setSelectedBook] = useState<(PopularBook | SaleBook) | null>(null);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-  const [userBalance, setUserBalance] = useState<number>(0);
-  const navigate = useNavigate();
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
 
-  interface PopularBook {
-    id: number;
-    title: string;
-    author: string;
-    price: number;
-    image: string;
-    pages: null;
-    rating: number;
-    reviews: number;
-    description?: string;
-    genres: string[];
-  }
-  
-  interface SaleBook {
-    id: number;
-    title: string;
-    author: string;
-    originalPrice: number;
-    salePrice: number;
-    discount: number;
-    image: string;
-    genres: string[];
-  }
+  // States for data
+  const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodResponse[]>(
+    []
+  );
+  const [balance, setBalance] = useState(0);
+  const [monthlySpendings, setMonthlySpendings] = useState(0);
+  const [booksPurchased, setBooksPurchased] = useState(0);
+  const [spendingData, setSpendingData] = useState([]);
 
-  interface BookResponse {
-    author: string;
-    description: string;
-    categoryNames: string[];
-    averageRating: number;
-  }
-  
-  const [popularBooks, setPopularBooks] = useState<PopularBook[]>([]);
-  const [saleBooks, setSaleBooks] = useState<SaleBook[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const handleReadNow = (book) => {
-    navigate(`/book/${book.id}`, { state: { bookData: book } });
-    setSelectedBook(null); 
+  // States for modals
+  const [showAddFundsModal, setShowAddFundsModal] = useState(false);
+  const [showAddCardModal, setShowAddCardModal] = useState(false);
+
+  // Form states
+  const [depositAmount, setDepositAmount] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    number | null
+  >(null);
+  const [newCardDetails, setNewCardDetails] = useState({
+    methodType: MethodType.CREDIT_CARD,
+    cardNumber: "",
+    cardHolder: "",
+    expirationDate: "",
+    isDefault: false,
+  });
+
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Fetch transactions
+      const transactionResponse =
+        await transactionService.getUserTransactions();
+      const userTransactions = transactionResponse.data;
+      setTransactions(userTransactions);
+
+      // Fetch payment methods
+      const paymentMethodResponse =
+        await paymentMethodService.getUserPaymentMethods();
+      const userPaymentMethods = paymentMethodResponse.data;
+      setPaymentMethods(userPaymentMethods);
+
+      // Calculate balance - assuming deposits add to balance and withdrawals/purchases subtract
+      const userBalance = await usersService.getCurrentUserBalance();
+      setBalance(userBalance.accountBalance);
+
+      // Calculate monthly spendings
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const monthlySpent = userTransactions
+        .filter(
+          (transaction) =>
+            new Date(transaction.transactionDate) >= firstDayOfMonth &&
+            [
+              TransactionType.MUA,
+              TransactionType.THUE,
+              TransactionType.SUBSCRIPTION,
+            ].includes(transaction.transactionType)
+        )
+        .reduce((total, transaction) => total + transaction.amount, 0);
+      setMonthlySpendings(monthlySpent);
+
+      // Calculate books purchased
+      const booksCount = userTransactions.filter(
+        (transaction) =>
+          transaction.transactionType === TransactionType.MUA ||
+          transaction.transactionType === TransactionType.THUE
+      ).length;
+      setBooksPurchased(booksCount);
+
+      // Generate spending chart data
+      const last6Months = generateLast6MonthsLabels();
+      const spendingByMonth = last6Months.map((month) => {
+        const [monthName, year] = month.split(" ");
+        const startDate = new Date(
+          parseInt(year),
+          getMonthNumber(monthName),
+          1
+        );
+        const endDate = new Date(
+          parseInt(year),
+          getMonthNumber(monthName) + 1,
+          0
+        );
+
+        const spending = userTransactions
+          .filter((transaction) => {
+            const transactionDate = new Date(transaction.transactionDate);
+            return (
+              transactionDate >= startDate &&
+              transactionDate <= endDate &&
+              [
+                TransactionType.MUA,
+                TransactionType.THUE,
+                TransactionType.SUBSCRIPTION,
+              ].includes(transaction.transactionType)
+            );
+          })
+          .reduce((total, transaction) => total + transaction.amount, 0);
+
+        return {
+          name: monthName,
+          amount: spending,
+        };
+      });
+
+      setSpendingData(spendingByMonth);
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+      setError("Failed to load wallet data. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const generateLast6MonthsLabels = () => {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const result = [];
+    const date = new Date();
 
-  useEffect(() => {
-    if (selectedBook) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
+    for (let i = 5; i >= 0; i--) {
+      const pastDate = new Date(date.getFullYear(), date.getMonth() - i, 1);
+      const month = months[pastDate.getMonth()];
+      const year = pastDate.getFullYear();
+      result.push(`${month} ${year}`);
     }
-    return () => {
-      document.body.style.overflow = "unset";
+
+    return result;
+  };
+
+  const getMonthNumber = (monthName) => {
+    const months = {
+      Jan: 0,
+      Feb: 1,
+      Mar: 2,
+      Apr: 3,
+      May: 4,
+      Jun: 5,
+      Jul: 6,
+      Aug: 7,
+      Sep: 8,
+      Oct: 9,
+      Nov: 10,
+      Dec: 11,
     };
-  }, [selectedBook]);
+    return months[monthName];
+  };
 
-  // Fetch popular books and sale books from API
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        setLoading(true);
+  const handleAddFunds = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    setError("");
 
-        // Fetch top-rated books (popular books)
-        const popularBooksResponse = await bookService.getTopRatedBooks(5);
-
-        // Fetch sale books
-        const saleBooksResponse = await bookService.getSaleBooksCoverInfo();
-
-        // Map the API responses to match our component's expected format
-        const mappedPopularBooks = popularBooksResponse.data.map((book) => ({
-          id: book.bookId,
-          title: book.title,
-          author: book.author,
-          price: Number(book.originalPrice) || 0, // Provide default value
-          image: book.coverImageUrl || "/api/placeholder/300/400",
-          pages: null, // API doesn't provide this info
-          rating: book.averageRating || 0,
-          reviews: 0, // API doesn't provide this info
-          description: book.description,
-          genres: book.categories?.map(category => category.categoryName) || [],
-        }));
-
-        // For sale books, update the mapping to match your API response:
-        const mappedSaleBooks = saleBooksResponse.data
-          .slice(0, 5)
-          .map((book) => ({
-            id: book.bookId,
-            title: book.title,
-            author: "", // API doesn't provide this in sale info
-            originalPrice: Number(book.originalPrice) || 0, // Changed from book.price
-            salePrice: Number(book.discountedPrice) || 0, // Changed from book.salePrice
-            discount: (book.originalPrice, book.discountedPrice), // Calculate from actual prices
-            image: book.coverImageUrl || "/api/placeholder/300/400", // Changed from book.coverImage
-            genres: [], // API doesn't provide this in sale info
-          }));
-
-        setPopularBooks(mappedPopularBooks);
-        setSaleBooks(mappedSaleBooks);
-      } catch (err) {
-        console.error("Error fetching books:", err);
-        setError("Failed to load books. Please try again later.");
-      } finally {
-        setLoading(false);
+    try {
+      const amount = parseFloat(depositAmount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error("Please enter a valid amount");
       }
-    };
 
-    fetchBooks();
-  }, []);
+      if (!selectedPaymentMethod) {
+        throw new Error("Please select a payment method");
+      }
 
-  // Fetch book details when a sale book is selected
-  useEffect(() => {
-    if (selectedBook && !selectedBook.description) {
-      const fetchBookDetails = async () => {
-        try {
-          const response = await bookService.getBookById(selectedBook.id);
-          const bookDetails = response.data as BookResponse;
+      // Get the selected payment method details
+      const paymentMethod = paymentMethods.find(
+        (method) => method.paymentMethodId === selectedPaymentMethod
+      );
 
-          // Update the selected book with additional details
-          setSelectedBook((prev) => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              author: bookDetails.author,
-              description: bookDetails.description,
-              genres: bookDetails.categoryNames || [],
-              rating: bookDetails.averageRating || 0,
-            };
-          });
-        } catch (err) {
-          console.error("Error fetching book details:", err);
-        }
+      // Create metadata for the transaction
+      const metadata = JSON.stringify({
+        method: paymentMethod.methodType,
+        last4: paymentMethod.cardNumber?.slice(-4) || "N/A",
+      });
+
+      // Execute deposit
+      await transactionService.depositFunds(amount, metadata);
+
+      // Refresh data
+      await fetchUserData();
+
+      // Close modal and reset form
+      setShowAddFundsModal(false);
+      setDepositAmount("");
+      setSelectedPaymentMethod(null);
+    } catch (err) {
+      console.error("Error adding funds:", err);
+      setError(err.message || "Failed to process deposit. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAddCard = async (e) => {
+    e.preventDefault();
+    setIsProcessing(true);
+    setError("");
+
+    try {
+      // Validate card details
+      if (
+        !newCardDetails.cardNumber ||
+        !newCardDetails.cardHolder ||
+        !newCardDetails.expirationDate
+      ) {
+        throw new Error("Please fill in all card details");
+      }
+
+      // Format expiration date to YYYY-MM format if it's MM/YY
+      let formattedExpDate = newCardDetails.expirationDate;
+      if (formattedExpDate.includes("/")) {
+        const [month, shortYear] = formattedExpDate.split("/");
+        formattedExpDate = `20${shortYear}-${month.padStart(2, "0")}-01`;
+      }
+
+      let formattedCardNumber = newCardDetails.cardNumber.replace(/\D/g, '');
+      if (formattedCardNumber.length > 16) {
+        throw new Error("Card number is too long. Please enter a valid card number.");
+      }
+
+      const paymentMethodRequest = {
+        ...newCardDetails,
+        cardNumber: formattedCardNumber,
+        expirationDate: formattedExpDate,
       };
 
-      fetchBookDetails();
+      // Add new payment method
+      await paymentMethodService.addPaymentMethod(paymentMethodRequest);
+
+      // Refresh payment methods
+      await fetchUserData();
+
+      // Close modal and reset form
+      setShowAddCardModal(false);
+      setNewCardDetails({
+        methodType: MethodType.CREDIT_CARD,
+        cardNumber: "",
+        cardHolder: "",
+        expirationDate: "",
+        isDefault: false,
+      });
+    } catch (err) {
+      console.error("Error adding card:", err);
+      setError(
+        err.message || "Failed to add payment method. Please try again."
+      );
+    } finally {
+      setIsProcessing(false);
     }
-  }, [selectedBook]);
+  };
 
-  useEffect(() => {
-    const fetchUserBalance = async () => {
+  const handleSetDefaultPaymentMethod = async (methodId) => {
+    try {
+      await paymentMethodService.setDefaultPaymentMethod(methodId);
+      await fetchUserData();
+    } catch (err) {
+      console.error("Error setting default payment method:", err);
+      setError("Failed to set default payment method. Please try again.");
+    }
+  };
+
+  const handleDeletePaymentMethod = async (methodId) => {
+    if (
+      window.confirm("Are you sure you want to remove this payment method?")
+    ) {
       try {
-        const response = await usersService.getCurrentUserBalance();
-        setUserBalance(response.accountBalance);
+        await paymentMethodService.deletePaymentMethod(methodId);
+        await fetchUserData();
       } catch (err) {
-        console.error("Error fetching user balance:", err);
-        // Optionally show an error toast/message
+        console.error("Error deleting payment method:", err);
+        setError("Failed to delete payment method. Please try again.");
       }
-    };
-  
-    fetchUserBalance();
-  }, []);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+    }
   };
 
-  const bookCardVariants = {
+  const getTransactionIcon = (type) => {
+    switch (type) {
+      case TransactionType.DEPOSIT:
+        return <ArrowUpCircle className="text-green-500" size={24} />;
+      case TransactionType.WITHDRAWAL:
+        return <ArrowDownCircle className="text-red-500" size={24} />;
+      case TransactionType.MUA:
+      case TransactionType.THUE:
+        return <CreditCard className="text-blue-500" size={24} />;
+      case TransactionType.REFUND:
+        return <ArrowUpCircle className="text-purple-500" size={24} />;
+      case TransactionType.SUBSCRIPTION:
+        return <Clock className="text-orange-500" size={24} />;
+      default:
+        return <CreditCard className="text-gray-500" size={24} />;
+    }
+  };
+
+  const cardVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 20,
-      },
-    },
+    visible: { opacity: 1, y: 0 },
   };
 
-  const sidebarVariants = {
-    hidden: { x: "100%", opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
-      },
-    },
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
+
+  const getTransactionTitle = (transaction) => {
+    switch (transaction.transactionType) {
+      case TransactionType.DEPOSIT:
+        return "Wallet Deposit";
+      case TransactionType.MUA:
+        const bookTitle =
+          transaction.metadata?.book_title || `Book #${transaction.bookId}`;
+        return `Book Purchase: ${bookTitle}`;
+      case TransactionType.THUE:
+        const rentedBookTitle =
+          transaction.metadata?.book_title || `Book #${transaction.bookId}`;
+        return `Book Rental: ${rentedBookTitle}`;
+      case TransactionType.WITHDRAWAL:
+        return "Wallet Withdrawal";
+      case TransactionType.REFUND:
+        return "Refund";
+      case TransactionType.SUBSCRIPTION:
+        return "Subscription Payment";
+      default:
+        return "Transaction";
+    }
+  };
+
+  const getFilteredTransactions = () => {
+    if (activeTab === "all") {
+      return transactions;
+    }
+
+    const typeMap = {
+      deposit: TransactionType.DEPOSIT,
+      withdrawal: TransactionType.WITHDRAWAL,
+      purchase: TransactionType.MUA,
+    };
+
+    return transactions.filter(
+      (transaction) => transaction.transactionType === typeMap[activeTab]
+    );
+  };
+
   return (
-    ....
-    <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleReadNow(selectedBook)}
-                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-shadow"
+    <div className="flex h-screen overflow-hidden">
+      <main
+        className={`flex-1 flex flex-col transition-all duration-300 ${
+          isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"
+        }`}
+      >
+        <header
+          className={`w-full border-b ${
+            isDarkMode
+              ? "bg-gray-900/95 border-gray-700"
+              : "bg-white/95 border-gray-200"
+          } backdrop-blur-sm sticky top-0 z-10`}
+        >
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Wallet2 className="text-blue-500" size={28} />
+                <h1 className="text-2xl font-bold">My Wallet</h1>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 ${
+                  isDarkMode
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-blue-500 hover:bg-blue-600"
+                } text-white shadow-lg shadow-blue-500/20`}
+                onClick={() => setShowAddFundsModal(true)}
+              >
+                <PlusCircle size={20} />
+                Add Funds
+              </motion.button>
+            </div>
+          </div>
+        </header>
+
+        
+
+        {/* Add Card Modal */}
+        <AnimatePresence>
+          {showAddCardModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+              onClick={() => !isProcessing && setShowAddCardModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className={`w-full max-w-md rounded-2xl ${
+                  isDarkMode ? "bg-gray-800" : "bg-white"
+                } shadow-xl`}
+              >
+                <div className="p-6 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-bold">Add Payment Method</h3>
+                  <button
+                    onClick={() => !isProcessing && setShowAddCardModal(false)}
+                    className={`p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      isProcessing ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    disabled={isProcessing}
                   >
-                    Read Now
-                  </motion.button>
-                  ..
+                    <X size={20} />
+                  </button>
+                </div>
+                <form onSubmit={handleAddCard} className="p-6">
+                  {error && (
+                    <div
+                      className={`mb-4 p-3 rounded-lg text-sm flex items-center gap-2 ${
+                        isDarkMode
+                          ? "bg-red-900/50 text-red-200"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      <AlertCircle size={16} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">
+                      Payment Method Type
+                    </label>
+                    <select
+                      value={newCardDetails.methodType}
+                      onChange={(e) =>
+                        setNewCardDetails({
+                          ...newCardDetails,
+                          methodType: e.target.value as MethodType,
+                        })
+                      }
+                      className={`block w-full px-4 py-3 rounded-xl ${
+                        isDarkMode
+                          ? "bg-gray-700 border-gray-600 text-white"
+                          : "bg-gray-50 border-gray-200 text-gray-900"
+                      } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      disabled={isProcessing}
+                    >
+                      <option value={MethodType.CREDIT_CARD}>
+                        Credit Card
+                      </option>
+                      <option value={MethodType.DEBIT_CARD}>Debit Card</option>
+                      <option value={MethodType.PAYPAL}>PayPal</option>
+                    </select>
+                  </div>
+
+                  {newCardDetails.methodType !== MethodType.PAYPAL && (
+                    <>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">
+                          Card Number
+                        </label>
+                        <input
+                          type="text"
+                          value={newCardDetails.cardNumber}
+                          onChange={(e) =>
+                            setNewCardDetails({
+                              ...newCardDetails,
+                              cardNumber: e.target.value,
+                            })
+                          }
+                          className={`block w-full px-4 py-3 rounded-xl ${
+                            isDarkMode
+                              ? "bg-gray-700 border-gray-600 text-white"
+                              : "bg-gray-50 border-gray-200 text-gray-900"
+                          } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          placeholder="0000 0000 0000 0000"
+                          required
+                          disabled={isProcessing}
+                        />
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">
+                          Card Holder Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newCardDetails.cardHolder}
+                          onChange={(e) =>
+                            setNewCardDetails({
+                              ...newCardDetails,
+                              cardHolder: e.target.value,
+                            })
+                          }
+                          className={`block w-full px-4 py-3 rounded-xl ${
+                            isDarkMode
+                              ? "bg-gray-700 border-gray-600 text-white"
+                              : "bg-gray-50 border-gray-200 text-gray-900"
+                          } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          placeholder="Full Name"
+                          required
+                          disabled={isProcessing}
+                        />
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium mb-2">
+                          Expiration Date
+                        </label>
+                        <input
+                          type="text"
+                          value={newCardDetails.expirationDate}
+                          onChange={(e) =>
+                            setNewCardDetails({
+                              ...newCardDetails,
+                              expirationDate: e.target.value,
+                            })
+                          }
+                          className={`block w-full px-4 py-3 rounded-xl ${
+                            isDarkMode
+                              ? "bg-gray-700 border-gray-600 text-white"
+                              : "bg-gray-50 border-gray-200 text-gray-900"
+                          } border focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          placeholder="MM/YY"
+                          required
+                          disabled={isProcessing}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="mb-6">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newCardDetails.isDefault}
+                        onChange={(e) =>
+                          setNewCardDetails({
+                            ...newCardDetails,
+                            isDefault: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 rounded text-blue-500 focus:ring-blue-500"
+                        disabled={isProcessing}
+                      />
+                      <span className="text-sm">
+                        Set as default payment method
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        !isProcessing && setShowAddCardModal(false)
+                      }
+                      className={`px-4 py-2 rounded-xl mr-3 ${
+                        isDarkMode
+                          ? "bg-gray-700 hover:bg-gray-600"
+                          : "bg-gray-100 hover:bg-gray-200"
+                      } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+                      disabled={isProcessing}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className={`px-6 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white ${
+                        isProcessing ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? "Processing..." : "Add Card"}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+};
+
+export default WalletDashboard;
